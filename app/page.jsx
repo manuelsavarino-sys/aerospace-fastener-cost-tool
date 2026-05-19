@@ -1,6 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
 
 // UI
 const Card = ({ children }) => (
@@ -13,90 +21,103 @@ const Button = ({ children, onClick }) => (
   </button>
 );
 
-// MODEL
-function estimateCost({ material }) {
-  const baseMap = {
-    Titanium: 4,
-    A286: 1.5,
-    Inconel: 5.5,
-    Steel: 1
-  };
-
-  return baseMap[material] || 2;
-}
-
 export default function Dashboard() {
 
   const [partNumber, setPartNumber] = useState("LN29950J0614B");
   const [data, setData] = useState(null);
-  const [result, setResult] = useState(null);
 
-  // API call
   useEffect(() => {
     fetch(`/api/suppliers?part=${partNumber}`)
       .then(res => res.json())
       .then(setData);
   }, [partNumber]);
 
-  const handleCalculate = () => {
-    const value = estimateCost({ material: "Titanium" });
-    setResult(value.toFixed(2));
-  };
+  if (!data) return <p>Loading...</p>;
+
+  // ✅ best supplier
+  const bestSupplier = data.suppliers.reduce((min, s) =>
+    parseFloat(s.price) < parseFloat(min.price) ? s : min
+  );
 
   return (
     <div className="p-6 grid gap-6 bg-gray-50 min-h-screen">
 
-      <h1 className="text-2xl font-bold">🚀 Aerospace Fastener Tool</h1>
+      <h1 className="text-2xl font-bold">
+        🚀 Aerospace Fastener Tool
+      </h1>
 
       {/* INPUT */}
       <Card>
         <input
           value={partNumber}
           onChange={(e) => setPartNumber(e.target.value)}
+          className="w-full border p-2 rounded"
         />
-        <Button onClick={handleCalculate}>Run Analysis</Button>
+        <Button onClick={() => {}}>Load Data</Button>
       </Card>
 
-      {/* INFO PART */}
-      {data && (
-        <Card>
-          <h2>Part Info</h2>
-          <p>Part: {data.part}</p>
-          <p>Material: {data.material}</p>
-          <p>Certification: {data.certification}</p>
-        </Card>
-      )}
+      {/* PART INFO */}
+      <Card>
+        <h2 className="font-semibold">Part Info</h2>
+        <p>Part: {data.part}</p>
+        <p>Material: {data.parsed.material}</p>
+        <p>Standard: {data.parsed.standard}</p>
+      </Card>
 
-      {/* COST */}
-      {result && (
-        <Card>
-          <h2>Cost Estimate</h2>
-          <p>€{result}</p>
-        </Card>
-      )}
+      {/* BEST SUPPLIER */}
+      <Card>
+        <h2 className="font-semibold">🏆 Best Alternative</h2>
+        <p className="text-green-600 font-bold">
+          {bestSupplier.name}
+        </p>
+        <p>€{bestSupplier.price} | {bestSupplier.leadTime} weeks</p>
+      </Card>
 
-      {/* SUPPLIERS */}
-      {data && (
-        <Card>
-          <h2>EU Suppliers</h2>
-          {data.suppliers
-            .filter(s => s.region === "EU")
-            .map(s => (
-              <p key={s.name}>
-                {s.name} → €{s.price} | {s.leadTime} weeks
-              </p>
+      {/* CHART */}
+      <Card>
+        <h2 className="font-semibold">📊 Supplier Price Comparison</h2>
+
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data.suppliers}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="price" />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      {/* TABLE */}
+      <Card>
+        <h2 className="font-semibold">🏭 Suppliers</h2>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Lead</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {data.suppliers.map(s => (
+              <tr
+                key={s.name}
+                className={
+                  s.name === bestSupplier.name
+                    ? "bg-green-100 font-bold"
+                    : ""
+                }
+              >
+                <td>{s.name}</td>
+                <td>€{s.price}</td>
+                <td>{s.leadTime} w</td>
+              </tr>
             ))}
-
-          <h2 className="mt-4">Non-EU Suppliers</h2>
-          {data.suppliers
-            .filter(s => s.region === "non-EU")
-            .map(s => (
-              <p key={s.name}>
-                {s.name} → €{s.price} | {s.leadTime} weeks
-              </p>
-            ))}
-        </Card>
-      )}
+          </tbody>
+        </table>
+      </Card>
 
     </div>
   );
