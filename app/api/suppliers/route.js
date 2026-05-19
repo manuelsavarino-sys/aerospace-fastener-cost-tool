@@ -3,49 +3,48 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const part = searchParams.get("part");
 
-  function parsePartNumber(part) {
-
-    if (!part) {
-      return {
-        standard: "Unknown",
-        material: "Steel",
-        basePrice: 7
-      };
+  // ✅ DATABASE LN + NAS (base reale)
+  const fastenerDB = {
+    "LN29950J0614B": {
+      standard: "LN",
+      material: "A286 Stainless Steel",
+      type: "Bolt",
+      equivalent: "NAS6206-14"
+    },
+    "NAS6206-14": {
+      standard: "NAS",
+      material: "Alloy Steel",
+      type: "Bolt",
+      equivalent: "LN29950J0614B"
+    },
+    "NAS6604-20": {
+      standard: "NAS",
+      material: "Inconel 718",
+      type: "High-strength bolt",
+      equivalent: "LN29675A08020"
+    },
+    "LN29675A08020": {
+      standard: "LN",
+      material: "Titanium",
+      type: "Bolt",
+      equivalent: "NAS6604-20"
+    },
+    "MS20426AD4-5": {
+      standard: "MS",
+      material: "Aluminum",
+      type: "Rivet",
+      equivalent: "No direct equivalent"
     }
+  };
 
-    if (part.startsWith("LN")) {
-      return {
-        standard: "LN",
-        material: "A286 Stainless Steel",
-        basePrice: 8.5
-      };
-    }
+  const data = fastenerDB[part] || {
+    standard: "Unknown",
+    material: "Steel",
+    type: "Unknown",
+    equivalent: "No equivalent found"
+  };
 
-    if (part.startsWith("NAS")) {
-      return {
-        standard: "NAS",
-        material: "Alloy Steel",
-        basePrice: 7
-      };
-    }
-
-    if (part.startsWith("MS")) {
-      return {
-        standard: "MS",
-        material: "Aluminum",
-        basePrice: 2
-      };
-    }
-
-    return {
-      standard: "Unknown",
-      material: "Steel",
-      basePrice: 7
-    };
-  }
-
-  const parsed = parsePartNumber(part);
-
+  // ✅ SUPPLIERS
   const baseSuppliers = [
     { name: "Fabory", region: "EU", factor: 0.7, leadTime: 3 },
     { name: "Accu", region: "EU", factor: 0.8, leadTime: 4 },
@@ -61,9 +60,10 @@ export async function GET(request) {
   ];
 
   const suppliers = baseSuppliers.map(s => {
+    const basePrice = 7.5;
 
     const price =
-      parsed.basePrice *
+      basePrice *
       s.factor *
       (1 + (Math.random() - 0.5) * 0.15);
 
@@ -73,14 +73,17 @@ export async function GET(request) {
       price: Number(price.toFixed(2)),
       leadTime: s.leadTime
     };
-
   });
 
   return Response.json({
     part: part || "Unknown",
-    parsed,
-    suppliers,
-    source: "live"
+    parsed: {
+      standard: data.standard,
+      material: data.material,
+      type: data.type
+    },
+    equivalent: data.equivalent,
+    suppliers
   });
-
 }
+``
