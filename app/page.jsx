@@ -15,14 +15,12 @@ export default function Dashboard() {
   const [parts, setParts] = useState([]);
   const [results, setResults] = useState([]);
 
-  // ✅ aggiunta vite
   const addPart = () => {
     if (!inputValue) return;
     setParts([...parts, inputValue]);
     setInputValue("");
   };
 
-  // ✅ analisi multipla
   const runAnalysis = async () => {
     const allResults = [];
 
@@ -35,7 +33,6 @@ export default function Dashboard() {
     setResults(allResults);
   };
 
-  // ✅ reset
   const handleReset = () => {
     setParts([]);
     setResults([]);
@@ -54,36 +51,17 @@ export default function Dashboard() {
         <input
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Insert LN / NAS / MS part number"
+          placeholder="Insert LN / NAS part number"
           className="border p-2 rounded w-full"
         />
 
         <div className="flex gap-2 mt-3">
-
-          <button
-            onClick={addPart}
-            className="bg-blue-600 text-white px-3 py-1 rounded"
-          >
-            Add
-          </button>
-
-          <button
-            onClick={runAnalysis}
-            className="bg-green-600 text-white px-3 py-1 rounded"
-          >
-            Run Analysis
-          </button>
-
-          <button
-            onClick={handleReset}
-            className="bg-gray-500 text-white px-3 py-1 rounded"
-          >
-            Reset
-          </button>
-
+          <button onClick={addPart} className="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
+          <button onClick={runAnalysis} className="bg-green-600 text-white px-3 py-1 rounded">Run Analysis</button>
+          <button onClick={handleReset} className="bg-gray-500 text-white px-3 py-1 rounded">Reset</button>
         </div>
 
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="text-sm mt-2 text-gray-600">
           Selected: {parts.join(", ")}
         </p>
 
@@ -99,10 +77,25 @@ export default function Dashboard() {
         return (
           <Card key={idx}>
 
-            {/* 🔵 PART NUMBER */}
+            {/* 🔵 PART */}
             <h2 className="text-xl font-bold text-blue-700">
               {r.part}
             </h2>
+
+            {/* ✅ SOURCE */}
+            <p className="text-sm mt-1">
+              {r.source === "estimated_db" && (
+                <span className="text-green-600 font-semibold">
+                  ✅ Verified database value
+                </span>
+              )}
+
+              {r.source === "estimated_generic" && (
+                <span className="text-yellow-600 font-semibold">
+                  ⚠ Estimated (no database match)
+                </span>
+              )}
+            </p>
 
             <p><b>Material:</b> {r.parsed.material}</p>
             <p><b>Standard:</b> {r.parsed.standard}</p>
@@ -112,12 +105,12 @@ export default function Dashboard() {
               🔄 Equivalent: {r.equivalent}
             </p>
 
-            {/* 🟢 BEST SUPPLIER */}
+            {/* 🟢 BEST */}
             <p className="text-green-600 font-bold mt-2">
               ✅ Best Supplier: {best.name} (€{best.price})
             </p>
 
-            {/* LISTA FORNITORI */}
+            {/* LISTA */}
             <div className="mt-2">
               {r.suppliers.map(s => {
 
@@ -130,6 +123,11 @@ export default function Dashboard() {
                   <div key={s.name}>
                     <span className="font-semibold">{s.name}</span> →
                     <span className={color}> €{s.price}</span>
+
+                    <span className="text-xs ml-1 text-gray-500">
+                      (live)
+                    </span>
+
                     {" "}({s.leadTime} w)
                   </div>
                 );
