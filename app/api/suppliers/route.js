@@ -4,6 +4,7 @@ export async function GET(request) {
   const part = searchParams.get("part");
 
   function parsePartNumber(part) {
+
     if (!part) {
       return {
         standard: "Unknown",
@@ -25,6 +26,14 @@ export async function GET(request) {
         standard: "NAS",
         material: "Alloy Steel",
         basePrice: 7
+      };
+    }
+
+    if (part.startsWith("MS")) {
+      return {
+        standard: "MS",
+        material: "Aluminum",
+        basePrice: 2
       };
     }
 
@@ -50,3 +59,28 @@ export async function GET(request) {
     { name: "Alcoa Fastening", region: "non-EU", factor: 1.25, leadTime: 6 },
     { name: "MISUMI", region: "non-EU", factor: 1.05, leadTime: 5 }
   ];
+
+  const suppliers = baseSuppliers.map(s => {
+
+    const price =
+      parsed.basePrice *
+      s.factor *
+      (1 + (Math.random() - 0.5) * 0.15);
+
+    return {
+      name: s.name,
+      region: s.region,
+      price: Number(price.toFixed(2)),
+      leadTime: s.leadTime
+    };
+
+  });
+
+  return Response.json({
+    part: part || "Unknown",
+    parsed,
+    suppliers,
+    source: "live"
+  });
+
+}
