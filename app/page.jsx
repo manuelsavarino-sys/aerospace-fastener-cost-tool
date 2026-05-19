@@ -1,23 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
-import dynamic from "next/dynamic";
-import jsPDF from "jspdf";
-
-// ✅ dynamic charts (NO SSR bug)
-const BarChart = dynamic(() => import("recharts").then(m => m.BarChart), { ssr: false });
-const Bar = dynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then(m => m.YAxis), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false });
-const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
 
 // UI
 const Card = ({ children }) => (
-  <div className="border rounded-xl p-4 shadow bg-white">
+  <div className="border rounded-xl p-4 shadow bg-white mb-4">
     {children}
   </div>
 );
+
+// ✅ funzione equivalenza LN ↔ NAS (semplificata)
+function getEquivalent(part) {
+
+  if (!part) return "N/A";
+
+  if (part.startsWith("LN")) {
+    return "NAS equivalent (approx.)";
+  }
+
+  if (part.startsWith("NAS")) {
+    return "LN equivalent (approx.)";
+  }
+
+  return "No direct equivalent";
+}
 
 export default function Dashboard() {
 
@@ -25,14 +31,14 @@ export default function Dashboard() {
   const [parts, setParts] = useState([]);
   const [results, setResults] = useState([]);
 
-  // ✅ aggiungi vite alla lista
+  // ✅ aggiungi vite
   const addPart = () => {
     if (!inputValue) return;
     setParts([...parts, inputValue]);
     setInputValue("");
   };
 
-  // ✅ lancia analisi multipla
+  // ✅ analisi multipla
   const runAnalysis = async () => {
     const allResults = [];
 
@@ -45,50 +51,17 @@ export default function Dashboard() {
     setResults(allResults);
   };
 
-  // ✅ export PDF
-  const exportPDF = () => {
-
-    const doc = new jsPDF();
-
-    let y = 10;
-
-    results.forEach((r, index) => {
-      doc.text(`Part: ${r.part}`, 10, y);
-      y += 6;
-      doc.text(`Material: ${r.parsed.material}`, 10, y);
-      y += 6;
-
-      r.suppliers.slice(0, 3).forEach(s => {
-        doc.text(`${s.name} - €${s.price}`, 10, y);
-        y += 6;
-      });
-
-      y += 10;
-    });
-
-    const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, "-");
-
-    const filename =
-      parts.join("_") + "_" + timestamp + ".pdf";
-
-    doc.save(filename);
+  // ✅ reset
+  const handleReset = () => {
+    setResults([]);
+    setParts([]);
   };
 
-  // ✅ dati grafico
-  const chartData = results.flatMap(r =>
-    r.suppliers.map(s => ({
-      name: s.name,
-      price: s.price,
-      part: r.part
-    }))
-  );
-
   return (
-    <div className="p-6 grid gap-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen">
 
-      <h1 className="text-2xl font-bold">
-        🚀 Fastener Comparison Dashboard
+      <h1 className="text-2xl font-bold mb-4">
+        🚀 Fastener Analysis Tool
       </h1>
 
       {/* INPUT */}
@@ -96,11 +69,11 @@ export default function Dashboard() {
         <input
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Insert part number"
+          placeholder="Insert LN / NAS part number"
           className="border p-2 rounded w-full"
         />
 
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-3">
           <button
             onClick={addPart}
             className="bg-blue-600 text-white px-3 py-1 rounded"
@@ -116,33 +89,17 @@ export default function Dashboard() {
           </button>
 
           <button
-            onClick={exportPDF}
-            className="bg-gray-700 text-white px-3 py-1 rounded"
+            onClick={handleReset}
+            className="bg-gray-500 text-white px-3 py-1 rounded"
           >
-            Export PDF
+            Reset
           </button>
         </div>
 
-        <p className="text-sm mt-2">
+        <p className="mt-2 text-sm text-gray-600">
           Selected: {parts.join(", ")}
         </p>
       </Card>
-
-      {/* CHART */}
-      {results.length > 0 && (
-        <Card>
-          <h2>📊 Comparison Chart</h2>
-
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="price" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      )}
 
       {/* RESULTS */}
       {results.map((r, idx) => {
@@ -153,22 +110,49 @@ export default function Dashboard() {
 
         return (
           <Card key={idx}>
-            <h2>{r.part}</h2>
 
-            <p>Material: {r.parsed.material}</p>
-            <p>Standard: {r.parsed.standard}</p>
+            {/* ✅ PART NUMBER evidenziato */}
+            <h2 className="text-xl font-bold text-blue-700">
+              {r.part}
+            </h2>
 
-            <p className="text-green-600 font-bold">
-              Best: {best.name} (€{best.price})
+            <p>
+              <b>Material:</b> {r.parsed.material}
             </p>
 
-            <ul>
-              {r.suppliers.map(s => (
-                <li key={s.name}>
-                  {s.name} - €{s.price} ({s.leadTime}w)
-                </li>
-              ))}
-            </ul>
+            <p>
+              <b>Standard:</b> {r.parsed.standard}
+            </p>
+
+            {/* ✅ EQUIVALENTE */}
+            <p className="text-purple-600 mt-1">
+              🔄 Equivalent: {getEquivalent(r.part)}
+            </p>
+
+            {/* ✅ BEST SUPPLIER evidenziato */}
+            <p className="mt-2 text-green-600 font-bold">
+              ✅ Best Supplier: {best.name} (€{best.price})
+            </p>
+
+            {/* SUPPLIER LIST */}
+            <div className="mt-2">
+              {r.suppliers.map(s => {
+
+                const color =
+                  s.price < 8 ? "text-green-600" :
+                  s.price < 10 ? "text-yellow-600" :
+                  "text-red-600";
+
+                return (
+                  <div key={s.name}>
+                    <span className="font-semibold">{s.name}</span> →
+                    <span className={color}> €{s.price}</span>
+                    {" "}({s.leadTime} weeks)
+                  </div>
+                );
+              })}
+            </div>
+
           </Card>
         );
       })}
