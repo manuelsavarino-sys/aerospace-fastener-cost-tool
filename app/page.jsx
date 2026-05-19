@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import jsPDF from "jspdf";
 
-// ✅ Recharts safe
+// ✅ dynamic charts (NO SSR bug)
 const BarChart = dynamic(() => import("recharts").then(m => m.BarChart), { ssr: false });
 const Bar = dynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
 const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
@@ -18,135 +19,159 @@ const Card = ({ children }) => (
   </div>
 );
 
-const Button = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    className="bg-blue-600 text-white px-4 py-2 rounded mt-2"
-  >
-    Search
-  </button>
-);
-
 export default function Dashboard() {
 
-  // ✅ input libero utente
-  const [inputValue, setInputValue] = useState("LN29950J0614B");
+  const [inputValue, setInputValue] = useState("");
+  const [parts, setParts] = useState([]);
+  const [results, setResults] = useState([]);
 
-  // ✅ valore effettivo della richiesta
-  const [queryPart, setQueryPart] = useState("LN29950J0614B");
+  // ✅ aggiungi vite alla lista
+  const addPart = () => {
+    if (!inputValue) return;
+    setParts([...parts, inputValue]);
+    setInputValue("");
+  };
 
-  const [data, setData] = useState(null);
+  // ✅ lancia analisi multipla
+  const runAnalysis = async () => {
+    const allResults = [];
 
-  // ✅ fetch SOLO quando clicchi search
-  useEffect(() => {
-    fetch(`/api/suppliers?part=${queryPart}`)
-      .then(res => res.json())
-      .then(setData)
-      .catch(console.error);
-  }, [queryPart]);
+    for (let part of parts) {
+      const res = await fetch(`/api/suppliers?part=${part}`);
+      const data = await res.json();
+      allResults.push(data);
+    }
 
-  // ✅ loading
-  if (!data || !data.suppliers) {
-    return <p className="p-6">Loading...</p>;
-  }
+    setResults(allResults);
+  };
 
-  const bestSupplier = data.suppliers.reduce((min, s) =>
-    s.price < min.price ? s : min
+  // ✅ export PDF
+  const exportPDF = () => {
+
+    const doc = new jsPDF();
+
+    let y = 10;
+
+    results.forEach((r, index) => {
+      doc.text(`Part: ${r.part}`, 10, y);
+      y += 6;
+      doc.text(`Material: ${r.parsed.material}`, 10, y);
+      y += 6;
+
+      r.suppliers.slice(0, 3).forEach(s => {
+        doc.text(`${s.name} - €${s.price}`, 10, y);
+        y += 6;
+      });
+
+      y += 10;
+    });
+
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, "-");
+
+    const filename =
+      parts.join("_") + "_" + timestamp + ".pdf";
+
+    doc.save(filename);
+  };
+
+  // ✅ dati grafico
+  const chartData = results.flatMap(r =>
+    r.suppliers.map(s => ({
+      name: s.name,
+      price: s.price,
+      part: r.part
+    }))
   );
 
   return (
     <div className="p-6 grid gap-6 bg-gray-50 min-h-screen">
 
       <h1 className="text-2xl font-bold">
-        🚀 Aerospace Fastener Dashboard
+        🚀 Fastener Comparison Dashboard
       </h1>
 
-      {/* ✅ INPUT LIBERO */}
+      {/* INPUT */}
       <Card>
-        <h2 className="font-semibold mb-2">Search Fastener</h2>
-
         <input
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Enter LN / NAS / MS part number"
+          placeholder="Insert part number"
           className="border p-2 rounded w-full"
         />
 
-        <Button onClick={() => setQueryPart(inputValue)}>
-          Run Analysis
-        </Button>
-      </Card>
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={addPart}
+            className="bg-blue-600 text-white px-3 py-1 rounded"
+          >
+            Add
+          </button>
 
-      {/* PART INFO */}
-      <Card>
-        <h2>Part Info</h2>
-        <p><b>Part:</b> {data.part}</p>
-        <p><b>Material:</b> {data.parsed.material}</p>
-        <p><b>Standard:</b> {data.parsed.standard}</p>
-      </Card>
+          <button
+            onClick={runAnalysis}
+            className="bg-green-600 text-white px-3 py-1 rounded"
+          >
+            Run Analysis
+          </button>
 
-      {/* BEST SUPPLIER */}
-      <Card>
-        <h2>🏆 Best Supplier</h2>
-        <p className="text-green-600 font-bold">
-          {bestSupplier.name}
+          <button
+            onClick={exportPDF}
+            className="bg-gray-700 text-white px-3 py-1 rounded"
+          >
+            Export PDF
+          </button>
+        </div>
+
+        <p className="text-sm mt-2">
+          Selected: {parts.join(", ")}
         </p>
-        <p>€{bestSupplier.price} | {bestSupplier.leadTime} weeks</p>
       </Card>
 
       {/* CHART */}
-      <Card>
-        <h2>📊 Supplier Prices</h2>
+      {results.length > 0 && (
+        <Card>
+          <h2>📊 Comparison Chart</h2>
 
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data.suppliers}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="price" fill="#2563eb" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="price" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
 
-      {/* TABLE */}
-      <Card>
-        <h2>🏭 Suppliers</h2>
+      {/* RESULTS */}
+      {results.map((r, idx) => {
 
-        <table className="w-full text-sm">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Lead</th>
-            </tr>
-          </thead>
+        const best = r.suppliers.reduce((min, s) =>
+          s.price < min.price ? s : min
+        );
 
-          <tbody>
-            {data.suppliers.map((s) => {
+        return (
+          <Card key={idx}>
+            <h2>{r.part}</h2>
 
-              const color =
-                s.price < 8 ? "text-green-600" :
-                s.price < 10 ? "text-yellow-600" :
-                "text-red-600";
+            <p>Material: {r.parsed.material}</p>
+            <p>Standard: {r.parsed.standard}</p>
 
-              return (
-                <tr
-                  key={s.name}
-                  className={
-                    s.name === bestSupplier.name
-                      ? "bg-green-100 font-bold"
-                      : ""
-                  }
-                >
-                  <td>{s.name}</td>
-                  <td className={color}>€{s.price}</td>
-                  <td>{s.leadTime} w</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </Card>
+            <p className="text-green-600 font-bold">
+              Best: {best.name} (€{best.price})
+            </p>
+
+            <ul>
+              {r.suppliers.map(s => (
+                <li key={s.name}>
+                  {s.name} - €{s.price} ({s.leadTime}w)
+                </li>
+              ))}
+            </ul>
+          </Card>
+        );
+      })}
 
     </div>
   );
