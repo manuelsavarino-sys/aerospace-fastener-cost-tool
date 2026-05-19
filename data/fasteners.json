@@ -1,0 +1,74 @@
+[
+  {
+    "partNumber": "LN29950J0614B",
+    "standard": "LN",
+    "type": "Bolt",
+    "material": "A286 Stainless Steel",
+    "diameter": "6 mm",
+    "length": "14 mm",
+    "certification": "Aviation",
+    "avgPrice": 8.5,
+    "priceRange": [6.5, 12],
+    "typicalUse": "Structural aerospace joints"
+  },
+  {
+    "partNumber": "LN29675A06012",
+    "standard": "LN",
+    "type": "Screw",
+    "material": "Titanium Ti-6Al-4V",
+    "diameter": "6 mm",
+    "length": "12 mm",
+    "certification": "Space",
+    "avgPrice": 11.5,
+    "priceRange": [9, 15],
+    "typicalUse": "Lightweight structural assemblies"
+  },
+  {
+    "partNumber": "NAS6206-14",
+    "standard": "NAS",
+    "type": "Bolt",
+    "material": "Alloy Steel",
+    "diameter": "1/4\"",
+    "length": "14/16\"",
+    "certification": "Aviation",
+    "avgPrice": 7.2,
+    "priceRange": [5.5, 9],
+    "typicalUse": "Aircraft structural fastening"
+  },
+  {
+    "partNumber": "NAS6604-20",
+    "standard": "NAS",
+    "type": "Bolt",
+    "material": "Inconel 718",
+    "diameter": "1/4\"",
+    "length": "20/16\"",
+    "certification": "Space",
+    "avgPrice": 13.0,
+    "priceRange": [10, 18],
+    "typicalUse": "High temperature aerospace"
+  },
+  {
+    "partNumber": "MS20426AD4-5",
+    "standard": "MS",
+    "type": "Rivet",
+    "material": "Aluminum",
+    "diameter": "1/8\"",
+    "length": "5/16\"",
+    "certification": "Aviation",
+    "avgPrice": 0.8,
+    "priceRange": [0.5, 1.2],
+    "typicalUse": "Aircraft skin fastening"
+  },
+  {
+    "partNumber": "NAS1352-06-10",
+    "standard": "NAS",
+    "type": "Screw",
+    "material": "Stainless Steel",
+    "diameter": "6 mm",
+    "length": "10 mm",
+    "certification": "Aviation",
+    "avgPrice": 5.5,
+    "priceRange": [4, 7],
+    "typicalUse": "General aerospace fastening"
+  }
+]
