@@ -1,146 +1,102 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-// UI components
+// UI
 const Card = ({ children }) => (
-  <div className="border rounded-xl p-4 shadow bg-white hover:shadow-lg transition">
-    {children}
-  </div>
-);
-
-const CardContent = ({ children, className }) => (
-  <div className={className}>{children}</div>
+  <div className="border rounded-xl p-4 shadow bg-white">{children}</div>
 );
 
 const Button = ({ children, onClick }) => (
-  <button
-    onClick={onClick}
-    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full"
-  >
+  <button onClick={onClick} className="bg-blue-600 text-white px-4 py-2 rounded w-full">
     {children}
   </button>
 );
 
-// COST MODEL
-function estimateCost({ material, quantity, certification }) {
+// MODEL
+function estimateCost({ material }) {
   const baseMap = {
+    Titanium: 4,
     A286: 1.5,
-    Titanium: 4.0,
     Inconel: 5.5,
-    Steel: 1.0
+    Steel: 1
   };
 
-  const base = baseMap[material] || 2;
-  const machining = base * 0.4;
-  const treatment = base * 0.2;
-
-  const cert = {
-    aviation: 1.3,
-    space: 2.0
-  };
-
-  let volume = 1;
-  if (quantity > 10000) volume = 0.6;
-  else if (quantity > 1000) volume = 0.75;
-  else if (quantity > 100) volume = 0.9;
-
-  return (base + machining + treatment) * cert[certification] * volume;
+  return baseMap[material] || 2;
 }
 
 export default function Dashboard() {
-  const [input, setInput] = useState({
-    material: "Titanium",
-    quantity: 1000,
-    certification: "space"
-  });
 
+  const [partNumber, setPartNumber] = useState("LN29950J0614B");
+  const [data, setData] = useState(null);
   const [result, setResult] = useState(null);
-  const [supplierRanking, setSupplierRanking] = useState([]);
 
+  // API call
   useEffect(() => {
-    fetch("/api/suppliers")
+    fetch(`/api/suppliers?part=${partNumber}`)
       .then(res => res.json())
-      .then(setSupplierRanking);
-  }, []);
+      .then(setData);
+  }, [partNumber]);
 
   const handleCalculate = () => {
-    const value = estimateCost(input);
+    const value = estimateCost({ material: "Titanium" });
     setResult(value.toFixed(2));
   };
 
   return (
     <div className="p-6 grid gap-6 bg-gray-50 min-h-screen">
 
-      <h1 className="text-2xl font-bold">
-        🚀 Aerospace Fastener Cost Intelligence
-      </h1>
+      <h1 className="text-2xl font-bold">🚀 Aerospace Fastener Tool</h1>
 
+      {/* INPUT */}
       <Card>
-        <CardContent className="grid gap-3">
-          <select onChange={e => setInput({...input, material: e.target.value})}>
-            <option>Titanium</option>
-            <option>A286</option>
-            <option>Inconel</option>
-            <option>Steel</option>
-          </select>
-
-          <input
-            type="number"
-            value={input.quantity}
-            onChange={e => setInput({...input, quantity: Number(e.target.value)})}
-          />
-
-          <select onChange={e => setInput({...input, certification: e.target.value})}>
-            <option value="aviation">Aviation</option>
-            <option value="space">Space</option>
-          </select>
-
-          <Button onClick={handleCalculate}>Run Analysis</Button>
-        </CardContent>
+        <input
+          value={partNumber}
+          onChange={(e) => setPartNumber(e.target.value)}
+        />
+        <Button onClick={handleCalculate}>Run Analysis</Button>
       </Card>
 
-      {result && (
+      {/* INFO PART */}
+      {data && (
         <Card>
-          <CardContent>
-            <h2>Estimated Cost</h2>
-            <p>€{result} / unit</p>
-          </CardContent>
+          <h2>Part Info</h2>
+          <p>Part: {data.part}</p>
+          <p>Material: {data.material}</p>
+          <p>Certification: {data.certification}</p>
         </Card>
       )}
 
-      <Card>
-        <CardContent>
-          <h2>🏭 Supplier Ranking (Real-time EU)</h2>
+      {/* COST */}
+      {result && (
+        <Card>
+          <h2>Cost Estimate</h2>
+          <p>€{result}</p>
+        </Card>
+      )}
 
-          {supplierRanking.length === 0 ? (
-            <p>Loading...</p>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th>Supplier</th>
-                  <th>Price</th>
-                  <th>Lead</th>
-                  <th>Score</th>
-                </tr>
-              </thead>
+      {/* SUPPLIERS */}
+      {data && (
+        <Card>
+          <h2>EU Suppliers</h2>
+          {data.suppliers
+            .filter(s => s.region === "EU")
+            .map(s => (
+              <p key={s.name}>
+                {s.name} → €{s.price} | {s.leadTime} weeks
+              </p>
+            ))}
 
-              <tbody>
-                {supplierRanking.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.name}</td>
-                    <td>€{s.price}</td>
-                    <td>{s.leadTime}</td>
-                    <td>{s.score}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+          <h2 className="mt-4">Non-EU Suppliers</h2>
+          {data.suppliers
+            .filter(s => s.region === "non-EU")
+            .map(s => (
+              <p key={s.name}>
+                {s.name} → €{s.price} | {s.leadTime} weeks
+              </p>
+            ))}
+        </Card>
+      )}
 
     </div>
   );
