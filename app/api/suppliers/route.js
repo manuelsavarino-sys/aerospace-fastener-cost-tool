@@ -3,7 +3,7 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const part = searchParams.get("part");
 
-  // ✅ DATABASE LN + NAS (base reale)
+  // ✅ DATABASE LN + NAS
   const fastenerDB = {
     "LN29950J0614B": {
       standard: "LN",
@@ -28,21 +28,12 @@ export async function GET(request) {
       material: "Titanium",
       type: "Bolt",
       equivalent: "NAS6604-20"
-    },
-    "MS20426AD4-5": {
-      standard: "MS",
-      material: "Aluminum",
-      type: "Rivet",
-      equivalent: "No direct equivalent"
     }
   };
 
-  const data = fastenerDB[part] || {
-    standard: "Unknown",
-    material: "Steel",
-    type: "Unknown",
-    equivalent: "No equivalent found"
-  };
+  const data = fastenerDB[part] || null;
+
+  const source = data ? "estimated_db" : "estimated_generic";
 
   // ✅ SUPPLIERS
   const baseSuppliers = [
@@ -78,12 +69,13 @@ export async function GET(request) {
   return Response.json({
     part: part || "Unknown",
     parsed: {
-      standard: data.standard,
-      material: data.material,
-      type: data.type
+      standard: data?.standard || "Unknown",
+      material: data?.material || "Steel",
+      type: data?.type || "Unknown"
     },
-    equivalent: data.equivalent,
-    suppliers
+    equivalent: data?.equivalent || "No equivalent found",
+    suppliers,
+    source,
+    pricingSource: "live"
   });
 }
-``
