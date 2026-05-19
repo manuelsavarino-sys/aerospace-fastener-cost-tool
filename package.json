@@ -1,14 +1,14 @@
 {
-  "name": "fastener-cost-tool",
-  "version": "1.0.0",
+  "name": "fastener-tool",
   "private": true,
   "scripts": {
-    "dev": "next dev"
+    "dev": "next dev",
+    "build": "next build"
   },
   "dependencies": {
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "recharts": "latest"
+    "recharts": "^2.10.0"
   }
 }
